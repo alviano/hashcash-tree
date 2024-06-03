@@ -92,7 +92,7 @@ def perform_request_and_measure_time(payload):
 def main():
     fetch_parameters()
 
-    number_of_tasks = 1_0
+    number_of_tasks = 1_000
     payloads = [payload for payload in range(number_of_tasks)]  # random.randint(0, 1_000_000)
 
     workers = int(os.environ["WORKERS"]) if "WORKERS" in os.environ else 1
