@@ -111,7 +111,8 @@ class HashcashTree:
         while index > ZERO:
             left = nodes[TWO * index].digest if TWO * index <= self.size else b""
             right = nodes[TWO * index + ONE].digest if TWO * index + ONE <= self.size else b""
-            nodes[index] = self.hashcash.apply(message + index + left + right)
+            next_node = nodes[index + ONE].digest if index + ONE <= self.size else b""
+            nodes[index] = self.hashcash.apply(message + index + left + right + next_node)
             index -= ONE
 
         return HashcashTree.Result(tuple(nodes), key=self.__key)
@@ -120,18 +121,24 @@ class HashcashTree:
         number_of_leaves = np.power(2, np.floor(np.log2(self.size)))
         validate("leaf_index", leaf_index, min_value=1, max_value=number_of_leaves)
         index = UINT(number_of_leaves - 1 + leaf_index)
-        if index <= self.size and not self.hashcash.verify_result(message=message+index, result=digests_and_witnesses.hashcash_result(index)):
+        if index <= self.size and not self.hashcash.verify_result(
+                message=message + index + digests_and_witnesses.digest(index + ONE) if index < self.size else b'',
+                result=digests_and_witnesses.hashcash_result(index)
+        ):
             return False
         while index > ONE:
             parity = index % TWO
             index //= TWO
             sibling = TWO * index + ONE - parity
-            if sibling <= self.size and \
-                    not Hashcash.count_leading_zeros(digests_and_witnesses.digest(sibling)) >= self.hashcash.prefix_length:
+            next_node = index + ONE
+            if sibling <= self.size and not Hashcash.count_leading_zeros(digests_and_witnesses.digest(sibling)) >= self.hashcash.prefix_length:
+                return False
+            if next_node <= self.size and not Hashcash.count_leading_zeros(digests_and_witnesses.digest(next_node)) >= self.hashcash.prefix_length:
                 return False
             if not self.hashcash.verify_result(
                     message=message + index + digests_and_witnesses.digest(TWO * index) +
-                            digests_and_witnesses.digest(TWO * index + ONE),
+                            digests_and_witnesses.digest(TWO * index + ONE) +
+                            digests_and_witnesses.digest(next_node),
                     result=digests_and_witnesses.hashcash_result(index),
             ):
                 return False
@@ -177,6 +184,8 @@ class HashcashTree:
                 index //= 2
                 sibling = 2 * index + 1 - parity
                 res.add(sibling, self.nodes[sibling].digest if sibling < len(self.nodes) else b'')
+                next_node = index + 1
+                res.add(next_node, self.nodes[next_node].digest if next_node < len(self.nodes) else b'')
 
     @dataclasses.dataclass(frozen=True)
     class ValidationData:

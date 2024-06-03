@@ -55,7 +55,7 @@ def test_hashcash_verify():
 def test_hashcash_tree_apply():
     hashcash_tree = HashcashTree.of(prefix_length=8, size=UINT(15))
     result = hashcash_tree.apply(b"foo")
-    assert result.root().digest.hex() == "006c18d8c6b8ea89cde443b6f69f74c0d992e867f9778ff2d33e4d6a7e683b4c"
+    assert result.root().digest.hex() == "0014e1b4b9f344b1f36de9087bde887c643e39c156bb604572e691c8ab37b75f"
 
 
 def test_hashcash_tree_verify_must_specify_a_leaf_index():
@@ -69,6 +69,7 @@ def test_hashcash_tree_verify_must_specify_a_leaf_index():
 def test_hashcash_tree_verify():
     hashcash_tree = HashcashTree.of(prefix_length=8, size=UINT(15))
     result = hashcash_tree.apply(b"foo")
+    print(result.extract_nodes_for_validation(1))
     assert hashcash_tree.verify(message=b"foo", leaf_index=1,
                                 digests_and_witnesses=result.extract_nodes_for_validation(1))
 
