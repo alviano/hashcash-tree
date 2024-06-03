@@ -69,7 +69,7 @@ def test_hashcash_tree_verify_must_specify_a_leaf_index():
 def test_hashcash_tree_verify():
     hashcash_tree = HashcashTree.of(prefix_length=8, size=UINT(15))
     result = hashcash_tree.apply(b"foo")
-    for index in range(1,9):
+    for index in range(1, 9):
         assert hashcash_tree.verify(message=b"foo", leaf_index=index,
                                     digests_and_witnesses=result.extract_nodes_for_validation(index))
 
