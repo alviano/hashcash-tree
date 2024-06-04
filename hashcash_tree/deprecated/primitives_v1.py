@@ -1,6 +1,7 @@
 import dataclasses
 import hashlib
 from collections import namedtuple
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import InitVar
 from typing import Callable, Optional, Final
 
@@ -9,7 +10,6 @@ import typeguard
 from dumbo_utils.primitives import PrivateKey
 from rich.tree import Tree
 from valid8 import validate
-
 
 UINT: Final = np.uint16
 ZERO: Final = UINT(0)
@@ -81,6 +81,11 @@ class Hashcash:
         return res
 
 
+def _apply_parallel_task(hashcash, message, index):
+    res = hashcash.apply(message)
+    return index, res.digest, res.witness
+
+
 @dataclasses.dataclass(frozen=True)
 class HashcashTree:
     hashcash: Hashcash
@@ -114,6 +119,23 @@ class HashcashTree:
             nodes[index] = self.hashcash.apply(message + index + left + right)
             index -= ONE
 
+        return HashcashTree.Result(tuple(nodes), key=self.__key)
+
+    def apply_parallel(self, message: bytes, workers: int = 1) -> "HashcashTree.Result":
+        nodes: list[Optional[Hashcash.Result]] = [None for _ in range(self.size + 1)]
+        index = UINT(self.size)
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            while index > ZERO:
+                next_level = index // TWO
+                futures = []
+                while index > next_level:
+                    left = nodes[TWO * index].digest if TWO * index <= self.size else b""
+                    right = nodes[TWO * index + ONE].digest if TWO * index + ONE <= self.size else b""
+                    futures.append(pool.submit(_apply_parallel_task, self.hashcash, message + index + left + right, index))
+                    index -= ONE
+                for future in futures:
+                    idx, digest, witness = future.result()
+                    nodes[idx] = self.hashcash.Result(digest, witness)
         return HashcashTree.Result(tuple(nodes), key=self.__key)
 
     def verify(self, message: bytes, leaf_index: int, digests_and_witnesses: "HashcashTree.ValidationData") -> bool:
