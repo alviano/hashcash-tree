@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hashcash-tree"
-version = "0.2.3"
+version = "0.2.4"
 description = ""
 authors = ["Mario Alviano <mario.alviano@gmail.com>"]
 readme = "README.md"

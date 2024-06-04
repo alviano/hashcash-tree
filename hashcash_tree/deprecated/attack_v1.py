@@ -15,7 +15,7 @@ def main(
         with_check: bool = typer.Option(False, "--with-check", "-c", help="Check the hashcash tree")
 ):
     hashcash_tree = HashcashTree.of(prefix_length=prefix_length, size=UINT(size))
-    result = hashcash_tree.apply_parallel(PAYLOAD, workers=workers)
+    result = hashcash_tree.apply_parallel(PAYLOAD, workers=workers) if workers > 0 else hashcash_tree.apply(PAYLOAD)
     if with_check:
         assert hashcash_tree.verify(message=PAYLOAD, leaf_index=1,
                                     digests_and_witnesses=result.extract_nodes_for_validation(1))
